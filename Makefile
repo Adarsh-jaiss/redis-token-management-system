@@ -7,5 +7,5 @@ run:build
 push:
 	@git init
 	@git add .
-	@git commit -m {msg}
+	@git commit -s -m "$(msg)"
 	@git push -u origin main
