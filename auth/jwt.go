@@ -25,12 +25,15 @@ func GenerateAccessToken(userID int, email string) (string, error) {
 }
 
 func GenerateRefreshToken(userID int, email string) (string, error) {
+	iat := time.Now().Unix()
+	Session := fmt.Sprintf("%d-%d-%s", userID, iat, uuid.New().String())
+
 	claims := jwt.MapClaims{
 		"user_id":    userID,
 		"email":      email,
 		"exp":        time.Now().Add(time.Hour * 24 * 7).Unix(), // Expires in 7 days
-		"iat":        time.Now().Unix(),                         // Issued at time
-		"session_id": uuid.New().String(),                       // Random session ID
+		"iat":        iat,
+		"session_id": Session,
 	}
 
 	fmt.Println(claims)

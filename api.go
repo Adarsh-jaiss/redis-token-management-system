@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/golang-jwt/jwt/v5"
 	"github.com/token-management/auth"
 	"github.com/token-management/types"
 
@@ -69,7 +70,7 @@ func RegenerateAccessToken(c *gin.Context) {
 
 	fmt.Println("token sent from client:", refreshToken)
 
-	_, err, ok := auth.ValidateToken(refreshToken)
+	claims, err, ok := auth.ValidateToken(refreshToken)
 	if err != nil {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": fmt.Errorf("invalid or expired refresh token : %v", err)})
 		return
@@ -77,10 +78,19 @@ func RegenerateAccessToken(c *gin.Context) {
 	if !ok {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid token"})
 	}
-	hashedRefreshToken := auth.HashToken(refreshToken)
-	fmt.Println("hashedRefreshToken:", hashedRefreshToken)
 
-	exists, err := rdb.Exists(c, "refresh:"+hashedRefreshToken).Result()
+	tokenClaims, ok := claims.Claims.(jwt.MapClaims)
+	if !ok {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"message": fmt.Sprintf("failed to parse token claims:%v", err),
+		})
+		return
+	}
+	sessionId := tokenClaims["session_id"].(string)
+	// hashedRefreshToken := auth.HashToken(refreshToken)
+	// fmt.Println("hashedRefreshToken:", hashedRefreshToken)
+
+	exists, err := rdb.Exists(c, "refresh:"+sessionId).Result()
 	if err != nil {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "error checking refresh token", "err": err.Error()})
 		return
@@ -91,7 +101,7 @@ func RegenerateAccessToken(c *gin.Context) {
 	}
 
 	// fetching the ttl
-	refreshTokenTTL, err := rdb.TTL(c, "refresh:"+hashedRefreshToken).Result()
+	refreshTokenTTL, err := rdb.TTL(c, "refresh:"+sessionId).Result()
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"error": "ttl not found fot the refresh token", "token": refreshToken,
@@ -163,8 +173,8 @@ func RegenerateAccessToken(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{
-		"token": newAccessToken,
-		"message": "access token regenerated successfully",
+		"token":                   newAccessToken,
+		"message":                 "access token regenerated successfully",
 		"refresh_token_generated": refreshTokenGenerated,
 	})
 }

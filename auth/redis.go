@@ -38,11 +38,11 @@ func SaveTokenToDB(token string, rdb *redis.Client, c *gin.Context) error {
 	issuedAt := time.Unix(iat, 0)
 
 	// Hash the refresh token
-	tokenHash := sha256.Sum256([]byte(token))
-	tokenHashStr := hex.EncodeToString(tokenHash[:])
+	// tokenHash := sha256.Sum256([]byte(token))
+	// tokenHashStr := hex.EncodeToString(tokenHash[:])
 
 	// Store refresh token details
-	refreshKey := fmt.Sprintf("refresh:%s", tokenHashStr)
+	refreshKey := fmt.Sprintf("refresh:%s", sessionId)
 	refreshData := map[string]interface{}{
 		"user_id":        userId,
 		"session_id":     sessionId,
@@ -57,7 +57,7 @@ func SaveTokenToDB(token string, rdb *redis.Client, c *gin.Context) error {
 	sessionKey := fmt.Sprintf("sessions:%d", userId)
 
 	// Store refresh token hash for user
-	userTokenKey := fmt.Sprintf("user_refresh_tokens:%d", userId)
+	// userTokenKey := fmt.Sprintf("user_refresh_tokens:%d", userId)
 
 	// Execute commands in pipeline
 	pipe := rdb.Pipeline()
@@ -74,10 +74,10 @@ func SaveTokenToDB(token string, rdb *redis.Client, c *gin.Context) error {
 		Score:  float64(exp),
 		Member: sessionId,
 	})
-	pipe.ZAdd(c, userTokenKey, redis.Z{
-		Score:  float64(exp),
-		Member: tokenHashStr,
-	})
+	// pipe.ZAdd(c, userTokenKey, redis.Z{
+	// 	Score:  float64(exp),
+	// 	Member: tokenHashStr,
+	// })
 
 	_, err = pipe.Exec(c)
 	return err
