@@ -92,8 +92,8 @@ func CleanupExpiredTokens(rdb *redis.Client, userId int, c *gin.Context) {
 	now := float64(time.Now().Unix())
 
 	sessionKey := fmt.Sprintf("sessions:%d", userId)
-	userTokenKey := fmt.Sprintf("user_refresh_tokens:%d", userId)
+	// userTokenKey := fmt.Sprintf("user_refresh_tokens:%d", userId)
 
 	rdb.ZRemRangeByScore(c, sessionKey, "0", fmt.Sprintf("%f", now))
-	rdb.ZRemRangeByScore(c, userTokenKey, "0", fmt.Sprintf("%f", now))
+	// rdb.ZRemRangeByScore(c, userTokenKey, "0", fmt.Sprintf("%f", now))
 }
